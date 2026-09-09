@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OEG BAKİYE</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg: #F0F2F5; --card: #ffffff; --text: #1C1E21;
+            --primary: #007AFF; --danger: #FF3B30; --secondary: #8E8E93; --success: #34C759;
+        }
+        [data-theme="dark"] {
+            --bg: #000000; --card: #1C1C1E; --text: #FFFFFF;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--bg); color: var(--text);
+            margin: 0; padding: 0; transition: 0.3s;
+            overflow-x: hidden;
+        }
+
+        .swiper-container {
+            display: flex;
+            width: 200vw;
+            transition: transform 0.3s ease-out;
+            min-height: 100vh;
+        }
+        .page {
+            width: 100vw;
+            padding: 20px;
+            box-sizing: border-box;
+            padding-bottom: 80px;
+        }
+
+        .page-dots {
+            display: flex; justify-content: center; gap: 6px; margin-bottom: 10px;
+        }
+        .dot {
+            width: 7px; height: 7px; border-radius: 50%; background: var(--secondary); opacity: 0.4; transition: 0.3s;
+        }
+        .dot.active { background: var(--primary); opacity: 1; width: 18px; border-radius: 4px; }
+
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .main-title {
+            font-size: 24px; font-weight: 800; letter-spacing: -0.5px;
+            color: var(--text); margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+        }
+        .card {
+            position: relative; background: var(--card); border-radius: 20px; padding: 20px;
+            margin-bottom: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+        }
+        input, select, button {
+            width: 100%; padding: 12px; margin: 8px 0;
+            border-radius: 12px; border: none; background: var(--bg);
+            color: var(--text); font-size: 16px; box-sizing: border-box; font-family: inherit;
+        }
+        .primary-btn { background: var(--primary); color: white; font-weight: bold; }
+        .progress-bar {
+            width: 100%; height: 8px; background: #eee;
+            border-radius: 4px; overflow: hidden; margin: 15px 0;
+        }
+        #progress-fill { height: 100%; background: var(--primary); width: 0%; transition: 0.5s; }
+        .expense-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px; border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+        .receipt-preview {
+            display: none; width: 100%; max-height: 150px;
+            object-fit: contain; margin: 10px 0; border-radius: 10px;
+        }
+        
+        .settings-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 1000;
+        }
+        .settings-panel {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background: var(--card); border-radius: 25px 25px 0 0;
+            padding: 30px 20px; box-sizing: border-box;
+            transform: translateY(100%); transition: transform 0.3s ease;
+            z-index: 1001; max-height: 85vh; overflow-y: auto;
+        }
+        .settings-panel.active { transform: translateY(0); }
+
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 2000; justify-content: center; align-items: center;
+        }
+        .modal img { max-width: 90%; max-height: 80%; border-radius: 10px; }
+
+        .chart-container { position: relative; max-height: 200px; }
+        .chart-center-text {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center; pointer-events: none;
+        }
+        .chart-toggle-btn {
+            position: absolute; top: 0; right: 0; font-size: 11px; padding: 4px 8px;
+            width: auto; margin: 0; background: var(--bg); color: var(--secondary);
+            border-radius: 8px; cursor: pointer; font-weight: 600;
+        }
+
+        .summary-box {
+            background: var(--bg); border-radius: 12px; padding: 12px; margin: 8px 0;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .summary-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .summary-table th, .summary-table td {
+            text-align: left; padding: 8px; border-bottom: 1px solid rgba(0,0,0,0.05); font-size: 14px;
+        }
+
+        .smart-suggestion-box {
+            display: none;
+            background: rgba(0, 122, 255, 0.08);
+            border-left: 4px solid var(--primary);
+            border-radius: 10px;
+            padding: 10px 12px;
+            margin: 6px 0 10px 0;
+            font-size: 13px;
+            color: var(--text);
+            line-height: 1.4;
+        }
+
+        .goal-item {
+            background: var(--bg); border-radius: 12px; padding: 12px; margin: 10px 0;
+        }
+        .goal-status-badge {
+            font-size: 12px; padding: 6px 10px; border-radius: 8px; font-weight: 600; margin-top: 6px; display: inline-block; line-height: 1.4;
+        }
+
+        .goal-tab-btn {
+            width: auto; padding: 6px 12px; font-size: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; margin-right: 5px;
+        }
+        .goal-tab-btn.active {
+            background: var(--primary); color: white;
+        }
+        .goal-tab-btn.inactive {
+            background: var(--bg); color: var(--secondary);
+        }
+
+        .oguzmen-btn {
+            position: fixed; bottom: 20px; right: 20px;
+            background: var(--primary); color: white; border-radius: 30px;
+            padding: 12px 18px; font-weight: 700; font-size: 14px;
+            box-shadow: 0 8px 20px rgba(0,122,255,0.3); cursor: pointer; z-index: 999;
+            display: flex; align-items: center; gap: 6px; border: none; width: auto;
+        }
+        .oguzmen-chat-modal {
+            display: none; position: fixed; bottom: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 3000; justify-content: center; align-items: flex-end;
+        }
+        .oguzmen-chat-box {
+            background: var(--card); width: 100%; max-width: 500px; height: 75vh;
+            border-radius: 25px 25px 0 0; padding: 20px; box-sizing: border-box;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .chat-messages {
+            flex: 1; overflow-y: auto; margin: 15px 0; display: flex; flex-direction: column; gap: 10px;
+        }
+        .chat-msg {
+            max-width: 80%; padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 1.4;
+        }
+        .chat-msg.bot { background: var(--bg); color: var(--text); align-self: flex-start; border-bottom-left-radius: 4px; }
+        .chat-msg.user { background: var(--primary); color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+    </style>
+</head>
+<body>
+
+<div id="swiper" class="swiper-container">
+
+    <!-- ANA SAYFA (1. SAYFA) -->
+    <div class="page" id="page1">
+        <div class="page-dots">
+            <div class="dot active"></div>
+            <div class="dot"></div>
+        </div>
+
+        <div class="header">
+            <h1 class="main-title">OEG BAKİYE</h1>
+            <button onclick="openSettings()" style="width: auto; background: none; font-size: 28px; cursor: pointer;">⚙️</button>
+        </div>
+
+        <div class="card" style="text-align: center;">
+            <small style="color: var(--secondary); font-weight: 600; letter-spacing: 0.5px;">KALAN LİMİTİM</small>
+            <div id="balanceDisplay" style="font-size: 36px; font-weight: 800; color: var(--primary); margin: 5px 0 2px 0;">0.00 TL</div>
+            <div id="daysLeftDisplay" style="font-size: 12px; color: var(--secondary); margin-bottom: 2px; font-weight: 500;"></div>
+            <div id="dailySuggestedDisplay" style="font-size: 12px; color: var(--primary); margin-bottom: 10px; font-weight: 600;"></div>
+            <div class="progress-bar"><div id="progress-fill"></div></div>
+            <input type="number" id="limitInput" placeholder="Kart Limiti Belirle" onchange="updateLimit(this.value)">
+        </div>
+
+        <div class="card">
+            <h3 style="margin-top:0">Harcama Ekle</h3>
+            <input type="text" id="name" placeholder="Nereye Harcandı? (Örn: Alışveriş, Yemek, Starbucks)" oninput="generateSmartSuggestion()">
+            <input type="number" id="amount" placeholder="Toplam Tutar (TL)" oninput="generateSmartSuggestion()">
+            
+            <div id="suggestionBox" class="smart-suggestion-box"></div>
+
+            <select id="installment">
+                <option value="1">Peşin</option>
+                <option value="2">2 Taksit</option>
+                <option value="3">3 Taksit</option>
+                <option value="4">4 Taksit</option>
+                <option value="5">5 Taksit</option>
+                <option value="6">6 Taksit</option>
+                <option value="7">7 Taksit</option>
+                <option value="8">8 Taksit</option>
+                <option value="9">9 Taksit</option>
+                <option value="10">10 Taksit</option>
+                <option value="11">11 Taksit</option>
+                <option value="12">12 Taksit</option>
+            </select>
+
+            <select id="subscriptionType" onchange="toggleInstallmentSelect(this.value)">
+                <option value="none">Normal Harcama / Taksit</option>
+                <option value="monthly">Aylık Abonelik 🔄</option>
+                <option value="yearly">Yıllık Abonelik 📅</option>
+            </select>
+
+            <input type="datetime-local" id="date">
+            <label style="font-size: 13px; color: var(--secondary); margin-left: 5px;">Fiş Ekle (Kamerayı Aç):</label>
+            <input type="file" id="receiptInput" accept="image/*" capture="environment">
+            <img id="preview" class="receipt-preview">
+            <button class="primary-btn" onclick="addExpense()">Kaydet</button>
+        </div>
+
+        <!-- DÜZENLEME VE MANUEL KATEGORİLİ HEDEFLER KARTI -->
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <h3 style="margin:0;">🎯 Hedeflerim</h3>
+                <div>
+                    <button id="tabActiveGoals" class="goal-tab-btn active" onclick="switchGoalTab('active')">Aktif</button>
+                    <button id="tabReachedGoals" class="goal-tab-btn inactive" onclick="switchGoalTab('reached')">🏆 Ulaşılanlar</button>
+                </div>
+            </div>
+
+            <div id="addGoalSection">
+                <input type="text" id="goalName" placeholder="Hedef Adı (Örn: Kulaklık, Şarj Cihazı)">
+                <input type="text" id="goalCategory" placeholder="Kategori Girin (Örn: Alışveriş, Teknoloji)">
+                <input type="number" id="goalAmount" placeholder="Toplam Fiyat (TL)">
+                
+                <select id="goalInstallment">
+                    <option value="1">Peşin Satın Alınacak</option>
+                    <option value="2">2 Taksit Yapılacak</option>
+                    <option value="3">3 Taksit Yapılacak</option>
+                    <option value="4">4 Taksit Yapılacak</option>
+                    <option value="5">5 Taksit Yapılacak</option>
+                    <option value="6">6 Taksit Yapılacak</option>
+                    <option value="7">7 Taksit Yapılacak</option>
+                    <option value="8">8 Taksit Yapılacak</option>
+                    <option value="9">9 Taksit Yapılacak</option>
+                    <option value="10">10 Taksit Yapılacak</option>
+                    <option value="11">11 Taksit Yapılacak</option>
+                    <option value="12">12 Taksit Yapılacak</option>
+                </select>
+
+                <button id="saveGoalBtn" class="primary-btn" style="background:#5856D6;" onclick="addOrUpdateGoal()">+ Hedef Ekle</button>
+                <button id="cancelEditGoalBtn" style="display:none; background:var(--secondary); color:white; margin-top:2px;" onclick="cancelEditGoal()">İptal Et</button>
+            </div>
+
+            <div id="goalsList"></div>
+        </div>
+
+        <div class="card">
+            <div class="chart-container">
+                <button id="chartToggleBtn" class="chart-toggle-btn" onclick="toggleChartMode()">Görünüm: Aylık</button>
+                <canvas id="chart" style="max-height: 200px;"></canvas>
+                <div class="chart-center-text">
+                    <small id="chartCenterLabel" style="color: var(--secondary); font-size: 11px; text-transform: uppercase;">Aylık</small>
+                    <div id="chartCenterAmount" style="font-size: 16px; font-weight: 700; color: var(--text);">0.00 TL</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="list"></div>
+    </div>
+
+    <!-- SAĞ SAYFA: YILLIK BÜTÇE RAPORU (2. SAYFA) -->
+    <div class="page" id="page2">
+        <div class="page-dots">
+            <div class="dot"></div>
+            <div class="dot active"></div>
+        </div>
+        
+        <div class="header">
+            <h1 class="main-title" id="sideYearTitle">📊 Yıllık Bütçe Raporu</h1>
+            <button onclick="goToPage(0)" style="width: auto; background: none; font-size: 15px; color: var(--primary); cursor: pointer; font-weight:600;">‹ Ana Sayfa</button>
+        </div>
+
+        <div class="card" id="sideYearContent">
+        </div>
+    </div>
+
+</div>
+
+<!-- OĞUZMEN BUTONU & SOHBET MODALI -->
+<button class="oguzmen-btn" onclick="toggleOguzMenModal()">🤖 OğuzMen</button>
+
+<div id="oguzmenModal" class="oguzmen-chat-modal" onclick="if(event.target===this) toggleOguzMenModal()">
+    <div class="oguzmen-chat-box">
+        <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(0,0,0,0.1); padding-bottom:10px;">
+            <div>
+                <strong>🤖 OğuzMen Asistan</strong><br>
+                <small style="color:var(--secondary); font-size:11px;">Finansal Danışmanın</small>
+            </div>
+            <button onclick="toggleOguzMenModal()" style="width:auto; margin:0; background:none; font-size:20px; cursor:pointer;">❌</button>
+        </div>
+
+        <div id="chatMessages" class="chat-messages">
+            <div class="chat-msg bot">Selam! Ben OğuzMen. Almak istediğin ürünü veya kararsız kaldığın bir harcamayı yaz (Örn: "2000 TL'ye forma alacağım"), peşin mi taksitle mi almanın mantıklı olacağını bütçene göre analiz edeyim! 🚀</div>
+        </div>
+
+        <div style="display:flex; gap:8px;">
+            <input type="text" id="chatInput" placeholder="OğuzMen'e bir şey sor..." style="margin:0;" onkeypress="if(event.key==='Enter') sendOguzMenMsg()">
+            <button onclick="sendOguzMenMsg()" style="width:auto; margin:0; background:var(--primary); color:white; font-weight:bold;">Gönder</button>
+        </div>
+    </div>
+</div>
+
+<div id="overlay" class="settings-overlay" onclick="closeSettings()"></div>
+<div id="settingsPanel" class="settings-panel">
+    <h2 style="margin-top: 0;">Ayarlar & Raporlar</h2>
+    <button onclick="toggleTheme()" style="background: var(--primary); color: white;">🌓 Aydınlık / Karanlık Mod</button>
+    <button onclick="showHistoryModal()" style="background: #5856D6; color: white; margin-top: 10px;">📜 Geçmiş Aylar Özeti</button>
+    <button onclick="closeSettings(); goToPage(1);" style="background: #FF9500; color: white; margin-top: 10px;">📊 Yıllık Bütçe Raporu (Sayfa)</button>
+    <button onclick="exportData()" style="background: #34C759; color: white; margin-top: 10px;">📥 Verileri Yedekle (İndir)</button>
+    <button onclick="document.getElementById('importInput').click()" style="background: #007AFF; color: white; margin-top: 10px;">📤 Yedeği Geri Yükle</button>
+    <input type="file" id="importInput" accept=".json" style="display:none;" onchange="importData(event)">
+    <button onclick="closeSettings()" style="background: var(--secondary); color: white; margin-top: 15px;">Kapat</button>
+</div>
+
+<div id="modal" class="modal" onclick="this.style.display='none'">
+    <img id="modalImg" src="">
+</div>
+
+<div id="reportModal" class="modal" onclick="if(event.target===this) this.style.display='none'">
+    <div style="background: var(--card); border-radius: 20px; padding: 25px; width: 90%; max-width: 450px; max-height: 80vh; overflow-y: auto; color: var(--text);">
+        <h2 id="reportTitle" style="margin-top:0; text-align:center;">📜 Geçmiş Aylar Özeti</h2>
+        <div id="reportContent"></div>
+        <button class="primary-btn" onclick="document.getElementById('reportModal').style.display='none'" style="margin-top: 15px;">Kapat</button>
+    </div>
+</div>
+
+<script>
+    let db = JSON.parse(localStorage.getItem('oeg_v3_final')) || { limit: 0, items: [], lastResetCheck: "", history: [], goals: [], reachedGoals: [] };
+    let myChart;
+    let chartMode = 'monthly';
+    let currentPage = 0;
+    let currentGoalTab = 'active';
+    let editingGoalId = null;
+
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    document.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, false);
+    document.addEventListener('touchend', e => { touchEndX = e.changedTouches[0].screenX; handleSwipe(); }, false);
+
+    function handleSwipe() {
+        const diff = touchStartX - touchEndX;
+        if (Math.abs(diff) > 50) {
+            if (diff > 0 && currentPage === 0) goToPage(1);
+            else if (diff < 0 && currentPage === 1) goToPage(0);
+        }
+    }
+
+    function goToPage(index) {
+        currentPage = index;
+        document.getElementById('swiper').style.transform = `translateX(-${index * 100}vw)`;
+        window.scrollTo(0,0);
+    }
+
+    function toggleInstallmentSelect(val) {
+        const instSelect = document.getElementById('installment');
+        if (val !== 'none') {
+            instSelect.value = '1';
+            instSelect.disabled = true;
+            instSelect.style.opacity = '0.4';
+        } else {
+            instSelect.disabled = false;
+            instSelect.style.opacity = '1';
+        }
+    }
+
+    document.getElementById('receiptInput').onchange = function(e) {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const preview = document.getElementById('preview');
+            preview.src = reader.result;
+            preview.style.display = 'block';
+        };
+        if(e.target.files[0]) reader.readAsDataURL(e.target.files[0]);
+    };
+
+    function openSettings() {
+        document.getElementById('overlay').style.display = 'block';
+        document.getElementById('settingsPanel').classList.add('active');
+    }
+
+    function closeSettings() {
+        document.getElementById('overlay').style.display = 'none';
+        document.getElementById('settingsPanel').classList.remove('active');
+    }
+
+    function toggleTheme() {
+        const body = document.body;
+        const isDark = body.getAttribute('data-theme') === 'dark';
+        body.setAttribute('data-theme', isDark ? 'light' : 'dark');
+        updateChart();
+    }
+
+    function toggleOguzMenModal() {
+        const modal = document.getElementById('oguzmenModal');
+        modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
+    }
+
+    function sendOguzMenMsg() {
+        const input = document.getElementById('chatInput');
+        const text = input.value.trim();
+        if (!text) return;
+
+        const messagesDiv = document.getElementById('chatMessages');
+        messagesDiv.innerHTML += `<div class="chat-msg user">${text}</div>`;
+        input.value = '';
+
+        const totalSpent = db.items.reduce((s, i) => s + getActiveInstallmentCharge(i), 0);
+        const remaining = Math.max(db.limit - totalSpent, 0);
+        const daysLeft = getRemainingDays();
+
+        const foundNumbers = text.match(/\d+/g);
+        let amount = foundNumbers ? parseFloat(foundNumbers[0]) : 0;
+
+        let botReply = "";
+
+        if (amount > 0) {
+            if (amount <= remaining * 0.3) {
+                botReply = `Dostum ${amount} TL'lik bu harcama bütçene gayet uygun (kalan limitinin %30'undan az). <strong>Peşin</strong> olarak rahatlıkla alabilirsin!`;
+            } else if (amount <= remaining) {
+                botReply = `${amount} TL bakiyeni biraz zorlayabilir. Eğer kart yenilenmesine ${daysLeft} gün varken nakit sıkışıklığı yaşamak istemiyorsan bunu <strong>3 veya 6 taksitle</strong> almak çok daha akıllıca olur.`;
+            } else {
+                botReply = `⚠️ Uyarı: ${amount} TL şu anki kalan bütçenden (${remaining.toFixed(2)} TL) daha fazla! Bu ürünü almak istiyorsan mutlaka <strong>en az 6-12 taksitle</strong> almalı veya sonraki aya ertelemelisin.`;
+            }
+        } else {
+            botReply = `Tam olarak tutarı anlayamadım dostum. Mesela "2500 TL forma" veya "5000 TL lego" şeklinde fiyat belirterek yazarsan tam nokta atışı taksit/peşin tavsiyesi verebilirim!`;
+        }
+
+        setTimeout(() => {
+            messagesDiv.innerHTML += `<div class="chat-msg bot">${botReply}</div>`;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }, 400);
+
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function checkAutomaticReset() {
+        const today = new Date();
+        const currentDay = today.getDate();
+        const resetKey = today.getFullYear() + "-" + (today.getMonth() + 1);
+
+        if (!db.history) db.history = [];
+        if (!db.goals) db.goals = [];
+        if (!db.reachedGoals) db.reachedGoals = [];
+
+        if (currentDay >= 16 && db.lastResetCheck !== resetKey) {
+            const monthlyTotal = db.items.reduce((s, i) => s + getActiveInstallmentCharge(i), 0);
+            if (monthlyTotal > 0) {
+                db.history.push({
+                    period: db.lastResetCheck || resetKey,
+                    total: monthlyTotal,
+                    date: new Date().toISOString()
+                });
+            }
+
+            db.items = db.items.filter(i => {
+                if (i.installment === 'monthly' || i.installment === 'yearly') {
+                    return !i.cancelled;
+                }
+                return parseInt(i.installment) > 1;
+            });
+            db.lastResetCheck = resetKey;
+            save();
+        }
+    }
+
+    function getRemainingDays() {
+        const today = new Date();
+        let targetDate = new Date(today.getFullYear(), today.getMonth(), 16);
+        if (today.getDate() >= 16) targetDate.setMonth(targetDate.getMonth() + 1);
+        const diffTime = targetDate - today;
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+    }
+
+    function updateDaysLeftAndDailyBudget(remainingBalance) {
+        const diffDays = getRemainingDays();
+        document.getElementById('daysLeftDisplay').innerText = "Limitinizin yenilenmesine " + diffDays + " gün kaldı";
+        const suggestedDaily = Math.max(remainingBalance / diffDays, 0);
+        document.getElementById('dailySuggestedDisplay').innerText = "Bugün önerilen harcama: " + suggestedDaily.toFixed(2) + " TL / gün";
+    }
+
+    function generateSmartSuggestion() {
+        const nameVal = document.getElementById('name').value.trim().toLowerCase();
+        const amountVal = parseFloat(document.getElementById('amount').value) || 0;
+        const suggBox = document.getElementById('suggestionBox');
+
+        if (!nameVal && amountVal === 0) {
+            suggBox.style.display = 'none';
+            return;
+        }
+
+        const totalSpent = db.items.reduce((s, i) => s + getActiveInstallmentCharge(i), 0);
+        const remainingBalance = Math.max(db.limit - totalSpent, 0);
+        const daysLeft = getRemainingDays();
+        const dailyBudget = remainingBalance / daysLeft;
+
+        let message = "";
+
+        if (nameVal.includes("yemek") || nameVal.includes("starbucks") || nameVal.includes("restoran") || nameVal.includes("kahve")) {
+            const recommendedFoodBudget = dailyBudget * 0.4;
+            message = `💡 <strong>Yemek İpucu:</strong> Bugün yemek/içecek için önerilen bütçen yaklaşık <strong>${recommendedFoodBudget.toFixed(2)} TL</strong>.`;
+        } else if (nameVal.includes("alışveriş") || nameVal.includes("kiyafet") || nameVal.includes("giyim")) {
+            const recommendedShopping = dailyBudget * 2;
+            message = `🛍️ <strong>Alışveriş İpucu:</strong> Alışveriş için önerilen esnek bütçe <strong>${recommendedShopping.toFixed(2)} TL</strong> civarındadır.`;
+        }
+
+        if (amountVal > 0) {
+            if (amountVal > dailyBudget * 1.5) {
+                message += `<br>⚠️ <strong>Dengeleme Tavsiyesi:</strong> Bu harcama (${amountVal.toFixed(2)} TL) günlük ortalamanı aşıyor. İlerleyen günlerde yemek veya diğer harcamaları biraz kısarak bütçeni dengeleyebilirsin!`;
+            } else if (amountVal <= dailyBudget) {
+                message += `<br>✅ <strong>Harika:</strong> Bu harcama günlük bütçe sınırların içinde kalıyor!`;
+            }
+        }
+
+        if (message !== "") {
+            suggBox.innerHTML = message;
+            suggBox.style.display = 'block';
+        } else {
+            suggBox.style.display = 'none';
+        }
+    }
+
+    function switchGoalTab(tab) {
+        currentGoalTab = tab;
+        const btnActive = document.getElementById('tabActiveGoals');
+        const btnReached = document.getElementById('tabReachedGoals');
+        const addSection = document.getElementById('addGoalSection');
+
+        if (tab === 'active') {
+            btnActive.className = "goal-tab-btn active";
+            btnReached.className = "goal-tab-btn inactive";
+            addSection.style.display = "block";
+        } else {
+            btnActive.className = "goal-tab-btn inactive";
+            btnReached.className = "goal-tab-btn active";
+            addSection.style.display = "none";
+        }
+        
+        const totalSpent = db.items.reduce((s, i) => s + getActiveInstallmentCharge(i), 0);
+        renderGoals(Math.max(db.limit - totalSpent, 0));
+    }
+
+    function addOrUpdateGoal() {
+        const name = document.getElementById('goalName').value.trim();
+        let category = document.getElementById('goalCategory').value.trim();
+        const amount = parseFloat(document.getElementById('goalAmount').value);
+        const installment = document.getElementById('goalInstallment').value;
+
+        if (!name || !amount) return alert("Lütfen hedef adı ve fiyatı girin!");
+        if (!category) category = "Alışveriş";
+
+        if (!db.goals) db.goals = [];
+
+        if (editingGoalId !== null) {
+            const index = db.goals.findIndex(g => g.id === editingGoalId);
+            if (index !== -1) {
+                db.goals[index] = { id: editingGoalId, name, amount, category, installment };
+            }
+            editingGoalId = null;
+            document.getElementById('saveGoalBtn').innerText = "+ Hedef Ekle";
+            document.getElementById('cancelEditGoalBtn').style.display = "none";
+        } else {
+            db.goals.push({ id: Date.now(), name, amount, category, installment });
+        }
+
+        document.getElementById('goalName').value = '';
+        document.getElementById('goalCategory').value = '';
+        document.getElementById('goalAmount').value = '';
+        document.getElementById('goalInstallment').value = '1';
+        save();
+    }
+
+    function editGoal(id) {
+        const goal = db.goals.find(g => g.id === id);
+        if (!goal) return;
+
+        editingGoalId = goal.id;
+        document.getElementById('goalName').value = goal.name;
+        document.getElementById('goalCategory').value = goal.category || 'Alışveriş';
+        document.getElementById('goalAmount').value = goal.amount;
+        document.getElementById('goalInstallment').value = goal.installment || '1';
+
+        document.getElementById('saveGoalBtn').innerText = "💾 Hedefi Güncelle";
+        document.getElementById('cancelEditGoalBtn').style.display = "block";
+
+        document.getElementById('addGoalSection').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function cancelEditGoal() {
+        editingGoalId = null;
+        document.getElementById('goalName').value = '';
+        document.getElementById('goalCategory').value = '';
+        document.getElementById('goalAmount').value = '';
+        document.getElementById('goalInstallment').value = '1';
+
+        document.getElementById('saveGoalBtn').innerText = "+ Hedef Ekle";
+        document.getElementById('cancelEditGoalBtn').style.display = "none";
+    }
+
+    function completeGoal(id, deductFromBalance) {
+        const goalIndex = db.goals.findIndex(g => g.id === id);
+        if (goalIndex === -1) return;
+
+        const goal = db.goals[goalIndex];
+        if (!db.reachedGoals) db.reachedGoals = [];
+
+        if (deductFromBalance) {
+            const nowIso = new Date().toISOString();
+            db.items.push({
+                id: Date.now(),
+                name: goal.category || "Alışveriş",
+                amount: goal.amount,
+                installment: goal.installment || '1',
+                date: nowIso,
+                receipt: null,
+                cancelled: false
+            });
+        }
+
+        db.reachedGoals.push({
+            id: Date.now(),
+            name: goal.name,
+            amount: goal.amount,
+            category: goal.category || 'Alışveriş',
+            installment: goal.installment || '1',
+            reachedDate: new Date().toLocaleDateString('tr-TR'),
+            deducted: deductFromBalance
+        });
+
+        db.goals.splice(goalIndex, 1);
+        save();
+    }
+
+    function deleteGoal(id, isReached = false) {
+        if (isReached) {
+            db.reachedGoals = db.reachedGoals.filter(g => g.id !== id);
+        } else {
+            db.goals = db.goals.filter(g => g.id !== id);
+        }
+        save();
+    }
+
+    function renderGoals(remainingBalance) {
+        const container = document.getElementById('goalsList');
+
+        if (currentGoalTab === 'active') {
+            if (!db.goals || db.goals.length === 0) {
+                container.innerHTML = `<div style="text-align:center; color:var(--secondary); font-size:13px; margin-top:10px;">Henüz aktif bir hedef bulunmuyor.</div>`;
+                return;
+            }
+
+            let html = "";
+            db.goals.forEach(g => {
+                const instCount = parseInt(g.installment) || 1;
+                const monthlyPayment = g.amount / instCount;
+                const isAffordable = remainingBalance >= monthlyPayment;
+                const catText = g.category || 'Alışveriş';
+
+                let badgeHtml = "";
+                if (instCount === 1) {
+                    badgeHtml = isAffordable 
+                        ? `<div class="goal-status-badge" style="background: rgba(52, 199, 89, 0.15); color: var(--success);">🎉 Peşin alabilirsin! Bütçen uygun.</div>`
+                        : `<div class="goal-status-badge" style="background: rgba(255, 149, 0, 0.15); color: #FF9500;">⚠️ Peşin bütçeni aşıyor! Taksit seçeneğini değerlendirebilirsin.</div>`;
+                } else {
+                    badgeHtml = isAffordable 
+                        ? `<div class="goal-status-badge" style="background: rgba(52, 199, 89, 0.15); color: var(--success);">💳 Taksitli Alım Bütçene Uygun! (${instCount} Ay x ${monthlyPayment.toFixed(2)} TL/ay)</div>`
+                        : `<div class="goal-status-badge" style="background: rgba(255, 59, 48, 0.15); color: var(--danger);">⏳ Taksitli aylık ödemesi dahi kalan bütçenden fazla.</div>`;
+                }
+
+                html += `
+                    <div class="goal-item">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                            <div>
+                                <strong>${g.name}</strong><br>
+                                <small style="color:var(--primary); font-weight:700; font-size:11px;">🏷️ ${catText} ${instCount > 1 ? `(${instCount} Taksit)` : '(Peşin)'}</small>
+                            </div>
+                            <div style="text-align:right;">
+                                <span style="font-weight:bold; color:var(--primary);">${g.amount.toFixed(2)} TL</span>
+                                ${instCount > 1 ? `<br><small style="color:var(--secondary); font-size:11px;">(${monthlyPayment.toFixed(2)} TL/ay)</small>` : ''}
+                            </div>
+                        </div>
+                        ${badgeHtml}
+                        <div style="margin-top:10px; display:flex; flex-direction:column; gap:5px;">
+                            <button onclick="completeGoal(${g.id}, true)" style="width:100%; padding:8px; font-size:12px; background:var(--primary); color:white; margin:0; font-weight:600;">
+                                💳 Bakiyeden Düş (${instCount > 1 ? `${instCount} Taksitle` : 'Peşin'})
+                            </button>
+                            <button onclick="completeGoal(${g.id}, false)" style="width:100%; padding:8px; font-size:12px; background:var(--success); color:white; margin:0; font-weight:600;">🎁 Bakiyeden Düşmeden Tamamla</button>
+                            
+                            <div style="display:flex; gap:5px; margin-top:2px;">
+                                <button onclick="editGoal(${g.id})" style="width:50%; padding:6px; font-size:11px; background:#F1C40F; color:white; margin:0; font-weight:600;">✏️ Düzenle</button>
+                                <button onclick="deleteGoal(${g.id}, false)" style="width:50%; padding:6px; font-size:11px; background:var(--danger); color:white; margin:0; font-weight:600;">Sil</button>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+            container.innerHTML = html;
+        } else {
+            if (!db.reachedGoals || db.reachedGoals.length === 0) {
+                container.innerHTML = `<div style="text-align:center; color:var(--secondary); font-size:13px; margin-top:10px;">Henüz ulaşılan bir hedef geçmişi yok.</div>`;
+                return;
+            }
+
+            let html = "";
+            db.reachedGoals.slice().reverse().forEach(g => {
+                const noteText = g.deducted ? "(Bakiyeden Düşüldü)" : "(Dışarıdan Alındı)";
+                const catText = g.category || 'Alışveriş';
+                const instCount = parseInt(g.installment) || 1;
+                html += `
+                    <div class="goal-item" style="border-left: 4px solid var(--success);">
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                                <strong>🏆 ${g.name}</strong> <small style="color:var(--secondary); font-size:11px;">${noteText}</small><br>
+                                <small style="color:var(--primary); font-weight:600; font-size:11px;">🏷️ ${catText} ${instCount > 1 ? `(${instCount} Taksit)` : ''}</small> - <small style="color:var(--secondary);">Alındı: ${g.reachedDate}</small>
+                            </div>
+                            <span style="font-weight:bold; color:var(--success);">${g.amount.toFixed(2)} TL</span>
+                        </div>
+                        <div style="text-align:right; margin-top:6px;">
+                            <button onclick="deleteGoal(${g.id}, true)" style="width:auto; padding:3px 8px; font-size:11px; background:var(--secondary); color:white; display:inline-block; margin:0;">Geçmişten Sil</button>
+                        </div>
+                    </div>`;
+            });
+            container.innerHTML = html;
+        }
+    }
+
+    function getActiveInstallmentCharge(item) {
+        const totalAmount = parseFloat(item.amount);
+        const purchaseDate = new Date(item.date);
+        const today = new Date();
+
+        if (item.installment === 'monthly' || item.installment === 'yearly') {
+            let purchasePeriodYear = purchaseDate.getFullYear();
+            let purchasePeriodMonth = purchaseDate.getMonth();
+            if (purchaseDate.getDate() >= 16) purchasePeriodMonth += 1;
+
+            let currentPeriodYear = today.getFullYear();
+            let currentPeriodMonth = today.getMonth();
+            if (today.getDate() >= 16) currentPeriodMonth += 1;
+
+            const monthsPassed = (currentPeriodYear - purchasePeriodYear) * 12 + (currentPeriodMonth - purchasePeriodMonth);
+
+            if (monthsPassed < 0) return 0;
+
+            if (item.installment === 'monthly') {
+                return totalAmount;
+            } else {
+                return (monthsPassed % 12 === 0) ? totalAmount : 0;
+            }
+        }
+
+        const inst = parseInt(item.installment) || 1;
+        if (inst === 1) return totalAmount;
+
+        const monthlyCharge = totalAmount / inst;
+        let purchasePeriodYear = purchaseDate.getFullYear();
+        let purchasePeriodMonth = purchaseDate.getMonth();
+        if (purchaseDate.getDate() >= 16) purchasePeriodMonth += 1;
+
+        let currentPeriodYear = today.getFullYear();
+        let currentPeriodMonth = today.getMonth();
+        if (today.getDate() >= 16) currentPeriodMonth += 1;
+
+        const monthsPassed = (currentPeriodYear - purchasePeriodYear) * 12 + (currentPeriodMonth - purchasePeriodMonth);
+
+        if (monthsPassed >= 0 && monthsPassed < inst) {
+            return monthlyCharge;
+        }
+        return 0;
+    }
+
+    function getInstallmentEndDateText(item) {
+        if (item.installment === 'monthly') return " - Sürekli Aylık";
+        if (item.installment === 'yearly') return " - Sürekli Yıllık";
+        
+        const inst = parseInt(item.installment) || 1;
+        if (inst === 1) return "";
+        
+        const purchaseDate = new Date(item.date);
+        let startMonth = purchaseDate.getMonth();
+        if (purchaseDate.getDate() >= 16) startMonth += 1;
+        
+        const endDate = new Date(purchaseDate.getFullYear(), startMonth + (inst - 1), 1);
+        const options = { month: 'long', year: 'numeric' };
+        return " - Bitiş: " + endDate.toLocaleDateString('tr-TR', options);
+    }
+
+    function addExpense() {
+        const name = document.getElementById('name').value;
+        const amount = parseFloat(document.getElementById('amount').value);
+        const subType = document.getElementById('subscriptionType').value;
+        const installment = subType !== 'none' ? subType : document.getElementById('installment').value;
+        const date = document.getElementById('date').value;
+        const receipt = document.getElementById('preview').style.display === 'block' ? document.getElementById('preview').src : null;
+
+        if(!name || !amount) return alert("Lütfen yer ve miktar girin!");
+
+        db.items.push({ id: Date.now(), name, amount, installment, date, receipt, cancelled: false });
+        document.getElementById('name').value = '';
+        document.getElementById('amount').value = '';
+        document.getElementById('installment').value = '1';
+        document.getElementById('subscriptionType').value = 'none';
+        document.getElementById('suggestionBox').style.display = 'none';
+        toggleInstallmentSelect('none');
+        document.getElementById('preview').style.display = 'none';
+        save();
+    }
+
+    function deleteItem(id) {
+        const itemIndex = db.items.findIndex(i => i.id === id);
+        if (itemIndex === -1) return;
+
+        const item = db.items[itemIndex];
+
+        if ((item.installment === 'monthly' || item.installment === 'yearly') && getActiveInstallmentCharge(item) > 0) {
+            item.cancelled = true;
+            alert("Aboneliğinizi iptal ettiniz. Bu aya ait ödeme çoktan yapıldığı için harcama listesinde kalmaya devam edecek, ancak bir sonraki ay otomatik olarak tamamen silinecektir.");
+        } else {
+            db.items = db.items.filter(i => i.id !== id);
+        }
+        save();
+    }
+
+    function editItem(id) {
+        const item = db.items.find(i => i.id === id);
+        document.getElementById('name').value = item.name;
+        document.getElementById('amount').value = item.amount;
+        
+        if (item.installment === 'monthly' || item.installment === 'yearly') {
+            document.getElementById('subscriptionType').value = item.installment;
+            toggleInstallmentSelect(item.installment);
+        } else {
+            document.getElementById('subscriptionType').value = 'none';
+            toggleInstallmentSelect('none');
+            document.getElementById('installment').value = item.installment || '1';
+        }
+
+        document.getElementById('date').value = item.date;
+        if(item.receipt) {
+            document.getElementById('preview').src = item.receipt;
+            document.getElementById('preview').style.display = 'block';
+        }
+        db.items = db.items.filter(i => i.id !== id);
+        generateSmartSuggestion();
+        save();
+        window.scrollTo(0,0);
+    }
+
+    function updateLimit(val) { db.limit = parseFloat(val) || 0; save(); }
+    function save() { localStorage.setItem('oeg_v3_final', JSON.stringify(db)); render(); }
+
+    function showReceipt(src) {
+        document.getElementById('modalImg').src = src;
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    function exportData() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", "oeg_bakiye_yedek_" + new Date().toISOString().slice(0,10) + ".json");
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+    }
+
+    function importData(event) {
+        const fileReader = new FileReader();
+        fileReader.onload = function(e) {
+            try {
+                const importedDb = JSON.parse(e.target.result);
+                if (importedDb && Array.isArray(importedDb.items)) {
+                    db = importedDb;
+                    save();
+                    alert("Verileriniz başarıyla yüklendi!");
+                    closeSettings();
+                } else {
+                    alert("Geçersiz yedek dosyası!");
+                }
+            } catch(err) {
+                alert("Yedek yüklenirken bir hata oluştu.");
+            }
+        };
+        if(event.target.files[0]) fileReader.readAsText(event.target.files[0]);
+    }
+
+    function toggleChartMode() {
+        chartMode = chartMode === 'monthly' ? 'yearly' : 'monthly';
+        document.getElementById('chartToggleBtn').innerText = "Görünüm: " + (chartMode === 'monthly' ? "Aylık" : "Yıllık");
+        document.getElementById('chartCenterLabel').innerText = chartMode === 'monthly' ? "Aylık" : "Yıllık";
+        updateChart();
+    }
+
+    function showHistoryModal() {
+        closeSettings();
+        const content = document.getElementById('reportContent');
+        document.getElementById('reportTitle').innerText = "📜 Geçmiş Aylar Özeti";
+        
+        if (!db.history || db.history.length === 0) {
+            content.innerHTML = "<p style='text-align:center; color:var(--secondary);'>Henüz geçmiş aya ait arşivlenmiş veri bulunmuyor.</p>";
+        } else {
+            let html = "";
+            db.history.slice().reverse().forEach(h => {
+                html += `
+                <div class="summary-box">
+                    <div><strong>Dönem: ${h.period}</strong></div>
+                    <div style="font-weight:bold; color:var(--primary);">${h.total.toFixed(2)} TL</div>
+                </div>`;
+            });
+            content.innerHTML = html;
+        }
+        document.getElementById('reportModal').style.display = 'flex';
+    }
+
+    function renderSideYearlyReport() {
+        const currentYear = new Date().getFullYear();
+        document.getElementById('sideYearTitle').innerText = "📊 " + currentYear + " Yılı Bütçe Raporu";
+        const content = document.getElementById('sideYearContent');
+
+        const nameTotals = {};
+        let yearlyTotalSpent = 0;
+
+        db.items.forEach(i => {
+            let annualContribution = i.amount;
+            if (i.installment === 'monthly') annualContribution = i.amount * 12;
+            else if (parseInt(i.installment) > 1) annualContribution = i.amount; 
+
+            nameTotals[i.name] = (nameTotals[i.name] || 0) + annualContribution;
+            yearlyTotalSpent += annualContribution;
+        });
+
+        const annualLimit = (db.limit || 0) * 12;
+        const spentPercentage = annualLimit > 0 ? Math.min((yearlyTotalSpent / annualLimit) * 100, 100) : 0;
+        const remainingYearlyLimit = Math.max(annualLimit - yearlyTotalSpent, 0);
+        const remainingPercentage = (100 - spentPercentage).toFixed(1);
+
+        let categoryRows = "";
+        for (const [name, val] of Object.entries(nameTotals)) {
+            categoryRows += `
+                <tr>
+                    <td><strong>${name}</strong></td>
+                    <td style="text-align:right; font-weight:bold;">${val.toFixed(2)} TL</td>
+                </tr>`;
+        }
+
+        if (Object.keys(nameTotals).length === 0) {
+            categoryRows = `<tr><td colspan="2" style="text-align:center; color:var(--secondary);">Bu yıla ait harcama bulunamadı.</td></tr>`;
+        }
+
+        content.innerHTML = `
+            <div style="margin-bottom:15px;">
+                <div class="summary-box">
+                    <span>Yıllık Toplam Limit:</span>
+                    <strong>${annualLimit.toFixed(2)} TL</strong>
+                </div>
+                <div class="summary-box" style="border-left: 4px solid var(--danger);">
+                    <span>Harcanan Tutar:</span>
+                    <strong style="color:var(--danger);">${yearlyTotalSpent.toFixed(2)} TL (%${spentPercentage.toFixed(1)})</strong>
+                </div>
+                <div class="summary-box" style="border-left: 4px solid var(--success);">
+                    <span>Kalan (Tasarruf):</span>
+                    <strong style="color:var(--success);">${remainingYearlyLimit.toFixed(2)} TL (%${remainingPercentage})</strong>
+                </div>
+            </div>
+            
+            <h4 style="margin-bottom:5px;">Harcama Kalemleri</h4>
+            <table class="summary-table">
+                <thead>
+                    <tr style="background:rgba(0,0,0,0.03);">
+                        <th>Harcama Yeri</th>
+                        <th style="text-align:right;">Toplam Tutar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${categoryRows}
+                </tbody>
+            </table>
+        `;
+    }
+
+    function render() {
+        checkAutomaticReset();
+        
+        const total = db.items.reduce((s, i) => s + getActiveInstallmentCharge(i), 0);
+        const remaining = db.limit - total;
+        
+        document.getElementById('balanceDisplay').innerText = remaining.toFixed(2) + " TL";
+        document.getElementById('limitInput').value = db.limit;
+        
+        updateDaysLeftAndDailyBudget(remaining);
+        renderGoals(remaining);
+
+        const perc = Math.min((total / db.limit) * 100, 100) || 0;
+        document.getElementById('progress-fill').style.width = perc + "%";
+        document.getElementById('progress-fill').style.background = perc > 90 ? "var(--danger)" : "var(--primary)";
+
+        const listDiv = document.getElementById('list');
+        listDiv.innerHTML = '<h3 style="margin-left: 10px;">Geçmiş Harcamalar</h3>';
+        
+        if (db.items.length === 0) {
+            listDiv.innerHTML += `<div style="text-align:center; padding: 20px; color: var(--secondary); font-size: 14px;">Henüz bu aya ait bir harcama bulunmuyor.</div>`;
+        } else {
+            db.items.slice().sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(i => {
+                const currentCharge = getActiveInstallmentCharge(i);
+                const endDateText = getInstallmentEndDateText(i);
+                
+                let installmentText = "Peşin";
+                let displayAmount = i.amount + " TL";
+
+                if(i.installment === 'monthly') {
+                    installmentText = `Aylık Abonelik ${i.cancelled ? '(İptal Edildi ⏳)' : ''}`;
+                } else if(i.installment === 'yearly') {
+                    installmentText = `Yıllık Abonelik ${i.cancelled ? '(İptal Edildi ⏳)' : ''}`;
+                } else if(parseInt(i.installment) > 1) {
+                    installmentText = parseInt(i.installment) + " Taksit (Bu Ay: " + currentCharge.toFixed(2) + " TL" + endDateText + ")";
+                }
+
+                listDiv.innerHTML += `
+                    <div class="expense-item" style="${currentCharge === 0 ? 'opacity: 0.5;' : ''} ${i.cancelled ? 'background: rgba(255, 59, 48, 0.05);' : ''}">
+                        <div>
+                            <strong>${i.name}</strong> <small style="color:var(--primary)">(${installmentText})</small><br>
+                            <small style="color:var(--secondary)">${new Date(i.date).toLocaleString('tr-TR')}</small>
+                        </div>
+                        <div style="display:flex; align-items:center">
+                            ${i.receipt ? `<span onclick="showReceipt('${i.receipt}')" style="font-size:20px; cursor:pointer; margin-right:10px;">🧾</span>` : ''}
+                            <span style="font-weight:bold; margin-right:10px;">-${displayAmount}</span>
+                            <button onclick="editItem(${i.id})" style="width:30px; padding:5px; margin-right:5px; background:#f1c40f; color:white;">✏️</button>
+                            <button onclick="deleteItem(${i.id})" style="width:30px; padding:5px; background:var(--danger); color:white;">X</button>
+                        </div>
+                    </div>`;
+            });
+        }
+        updateChart();
+        renderSideYearlyReport();
+    }
+
+    function updateChart() {
+        const ctx = document.getElementById('chart').getContext('2d');
+        const dataMap = {};
+        let displayTotal = 0;
+
+        db.items.forEach(i => {
+            let charge = 0;
+            if (chartMode === 'monthly') {
+                charge = getActiveInstallmentCharge(i);
+            } else {
+                if (i.installment === 'monthly') charge = i.amount * 12;
+                else charge = i.amount;
+            }
+
+            if (charge > 0) {
+                dataMap[i.name] = (dataMap[i.name] || 0) + charge;
+                displayTotal += charge;
+            }
+        });
+
+        document.getElementById('chartCenterAmount').innerText = displayTotal.toFixed(2) + " TL";
+
+        if(myChart) myChart.destroy();
+        myChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: { labels: Object.keys(dataMap), datasets: [{ data: Object.values(dataMap), backgroundColor: ['#007AFF', '#5856D6', '#FF9500', '#FF3B30', '#2ecc71'] }] },
+            options: { cutOut: '70%', plugins: { legend: { display: false } } }
+        });
+    }
+
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    document.getElementById('date').value = now.toISOString().slice(0,16);
+    render();
+</script>
+</body>
+</html>
